@@ -34,7 +34,7 @@ namespace AntiRadioRecord
         private async void start()
         {
             await Task.Run(() => {
-                gate = new gateToDB(writeInTB,increasePB);
+                gate = new gateToDB(writeInTB,increasePB,CloseFunction);
                 this.Dispatcher.Invoke(() => {
                     AmountOfSongs.Minimum = 0;
                     AmountOfSongs.Maximum = gate.numOfDays;
@@ -69,12 +69,17 @@ namespace AntiRadioRecord
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            CloseFunction();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             start();
+        }
+
+        private void CloseFunction()
+        {
+            Dispatcher.Invoke(() => Close());
         }
     }
 }

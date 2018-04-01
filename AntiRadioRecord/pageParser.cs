@@ -10,12 +10,14 @@ using System.IO;
 using AngleSharp.Parser.Html;
 using AngleSharp.Dom.Html;
 using AngleSharp.Dom;
+using System.Collections;
 
 namespace AntiRadioRecord
 {
     #region Parser Objects
     public class Artist
     {
+        #region Fields
         private string ArtistName;
         public string artistName
         {
@@ -55,6 +57,9 @@ namespace AntiRadioRecord
             }
         }
 
+        #endregion
+
+        #region Constructors
         public Artist()
         {
 
@@ -70,6 +75,7 @@ namespace AntiRadioRecord
             this.artistName = artist.artistName;
             getArtistId();
         }
+        #endregion
 
         public void getArtistId()
         {
@@ -81,6 +87,7 @@ namespace AntiRadioRecord
 
     public class Song:IDisposable
     {
+        #region Fields
         private int _songID { get; set; }
         public int songId
         {
@@ -118,7 +125,9 @@ namespace AntiRadioRecord
             }
         }
         public bool isRussianRetardedSong;
+        #endregion
 
+        #region Constructors
         public Song(string data)
         {
             artist = new Artist();
@@ -139,11 +148,13 @@ namespace AntiRadioRecord
                 isRussianRetardedSong = true;
             }
         }
-
         public Song()
         {
             artist = new Artist();
         }
+        #endregion
+
+        #region Functions
 
         public Song Clone()
         {
@@ -178,9 +189,34 @@ namespace AntiRadioRecord
 
         }
 
+        private void getSongId()
+        {
+            gateToDB gate = new gateToDB();
+            songId = gate.GetSongIdByName(this);
+        }
+
+        public void Dispose()
+        {
+            artist = null;
+            SongName = null;
+        }
+
+        #endregion
+
+        #region Operators
         public override string ToString()
         {
             return artist.artistName + " - " + songName;
+        }
+
+        public gateToDB.SimplifiedSong ToSimplifiedSong()
+        {
+            return new gateToDB.SimplifiedSong() { SongName = this.ToString(), Listen = isRussianRetardedSong ? "false" : "true" };
+        }
+
+        public gateToDB.SimplifiedSong ToSimplifiedSong(string listen)
+        {
+            return new gateToDB.SimplifiedSong() { SongName = this.ToString(), Listen = listen };
         }
 
         public static bool operator !=(Song song1,Song song2)
@@ -208,21 +244,164 @@ namespace AntiRadioRecord
 
             return (song1.artist.artistName != song2.artist.artistName) || (song1.songName != song2.songName) ? false : true;
         }
+        #endregion
 
+    }
 
-        private void getSongId()
+    public class SongList : IList , IDisposable , IEnumerable
+    {
+        #region Fields
+        private List<Song> songs;
+
+        public bool IsIntraListNull
         {
-            gateToDB gate = new gateToDB();
-            songId = gate.GetSongIdByName(this);
+            get
+            {
+                return songs == null ? true : false;
+            }
         }
-        
+
+        public bool IsReadOnly
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public bool IsFixedSize
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                return songs.Count;
+            }
+        }
+
+        public object SyncRoot
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        public bool IsSynchronized
+        {
+            get
+            {
+                return false;
+            }
+        }
+        #endregion
+
+        #region Contructors
+        public SongList()
+        {
+            songs = new List<Song>();
+        }
+
+        public SongList(List<Song> songs)
+        {
+            this.songs = songs ?? null;
+        }
+        #endregion
+
+        public object this[int index]
+        {
+            get
+            {
+                return songs[index];
+            }
+            set
+            {
+                songs[index] = (Song)value;
+            }
+        }
+
+        #region Functions
+
+        /// <summary>
+        /// Return 1 if all ok, -1 if its not
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public int Add(object value)
+        {
+            try
+            {
+                songs.Add((Song)value);
+                return 1;
+            }
+            catch (Exception)
+            {
+                return -1;
+            }
+        }
+
+        public void Clear()
+        {
+            songs.Clear();
+        }
+
+        public bool Contains(object value)
+        {
+            return songs.Contains((Song)value);
+        }
+
+        public void CopyTo(Array array, int index)
+        {
+            songs.CopyTo((Song[])array, index);
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+            return songs.GetEnumerator();
+        }        
+
+        public int IndexOf(object value)
+        {
+            return songs.IndexOf((Song)value);
+        }
+
+        public void Insert(int index, object value)
+        {
+            songs.Insert(index, (Song)value);
+        }
+
+        public void Remove(object value)
+        {
+            songs.Remove((Song)value);
+        }
+
+        public void RemoveAt(int index)
+        {
+            songs.RemoveAt(index);
+        }
+
         public void Dispose()
         {
-            artist = null;
-            SongName = null;
+            songs = null;
+            GC.Collect();
         }
+
+        public List<Song> ToList()
+        {
+            return songs;
+        }
+
+        #endregion
     }
+
     #endregion
+
     public class pageParser
     {
         string URL;

@@ -9,10 +9,11 @@ using System.IO;
 using System.Threading;
 using System.ComponentModel.DataAnnotations;
 using System.Data.SqlClient;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity.Infrastructure.Annotations;
 
 namespace AntiRadioRecord
 {
-    public delegate void stringMethod(string param);
 
     #region Sql Commands Text
     class sqlCommands
@@ -111,6 +112,22 @@ namespace AntiRadioRecord
             }
         }
 
+        public static string insertSimplifiedSongsIntoDb
+        {
+            get
+            {
+                return "CREATE PROCEDURE InsertSimplifiedSongsIntoDb" +
+                    " @songName varchar(max), @listen varchar(max) " +
+                    "AS" +
+                    " SET NOCOUNT ON; " +
+                    "BEGIN TRY " +
+                    "INSERT INTO SimplifiedSongs values(@songName,@listen); " +
+                    "END TRY " +
+                    "BEGIN CATCH " +
+                    "END CATCH;";
+            }
+        }
+
         public static string updateDays
         {
             get
@@ -173,6 +190,14 @@ namespace AntiRadioRecord
             public string processed { get; set; }
         }
 
+        public class SimplifiedSong
+        {
+            [Key]
+            public int id { get; set; }
+            public string SongName { get; set; }
+            public string Listen { get; set; }
+        }
+
         public class SongContext:DbContext
         {
             public SongContext() : base("DBConnection")
@@ -180,12 +205,26 @@ namespace AntiRadioRecord
                 Database.SetInitializer<SongContext>(new CreateDatabaseIfNotExists<SongContext>());
             }
 
+            protected override void OnModelCreating(DbModelBuilder modelBuilder)
+            {
+                modelBuilder
+                .Entity<SimplifiedSong>()
+                .Property(t => t.SongName)
+                .IsRequired()
+                .HasMaxLength(200)
+                .HasColumnAnnotation(
+                IndexAnnotation.AnnotationName,
+                new IndexAnnotation(
+                new IndexAttribute("IX_SongName", 1) { IsUnique = true }));
+            }
+
             public DbSet<Songs> songs { get; set; }
             public DbSet<Artists> artists { get; set; }
             public DbSet<Days> days { get; set; }
-
+            public DbSet<SimplifiedSong> simplifiedSongs { get; set; }
         }
         #endregion
+
         #region Dates in str
         private string getEngNameOfMonth(int month)
         {
@@ -250,6 +289,7 @@ namespace AntiRadioRecord
         }
         #endregion
 
+        #region Fields
         private int _numOfDays { get; set; }
         public int numOfDays
         {
@@ -258,22 +298,24 @@ namespace AntiRadioRecord
                 return (from element in context.days.AsParallel() where element.processed == "false" select element).Count();
             }
         }
-
         public bool isDbExist;
         Action<string> writer;
         Action increasePB;
-
+        Action closeFunction;
         public SongContext context;
+        #endregion
 
+        #region Constructors
         public gateToDB()
         {
             context = new SongContext();
         }
 
-        public gateToDB(Action<string> writer, Action increasePB)
+        public gateToDB(Action<string> writer, Action increasePB , Action closeFunction)
         {
             this.writer = writer;
             this.increasePB = increasePB;
+            this.closeFunction = closeFunction;
             context = new SongContext();
             if(!context.Database.Exists())
             {
@@ -288,6 +330,7 @@ namespace AntiRadioRecord
                 createInsertIntoSongs();
                 createInsertIntoArtists();
                 createUpdateDays();
+                createInsertSimplifiedSongsIntoDb();
                 writer("Начато заполнение дат до сегодняшнего дня");
                 Thread.Sleep(1000);
                 fillDatesUpToNow();
@@ -299,7 +342,7 @@ namespace AntiRadioRecord
                 fillDatesUpToNow();
             }
         }
-
+        #endregion
 
         #region Triggers and Stored procedures
         private void createTrigger1()
@@ -317,6 +360,11 @@ namespace AntiRadioRecord
             context.Database.ExecuteSqlCommand(sqlCommands.insertIntoSongs);
         }
 
+        private void createInsertSimplifiedSongsIntoDb()
+        {
+            context.Database.ExecuteSqlCommand(sqlCommands.insertSimplifiedSongsIntoDb);
+        }
+
         private void createInsertIntoArtists()
         {
             context.Database.ExecuteSqlCommand(sqlCommands.insertIntoArtists);
@@ -328,6 +376,182 @@ namespace AntiRadioRecord
         }
 
         #endregion
+
+
+        #region Inserts And Update
+        /// <summary>
+        /// Returns id of inserted artist,if artist already exists this function will return -1
+        /// </summary>
+        /// <param name="artist">name of inserted artist</param>
+        /// <returns>Returns id of inserted artist</returns>
+        public int InsertArtistIntoDb(Artist artist)
+        {
+            using (SongContext songContext = new SongContext())
+            {
+                var param1 = new SqlParameter
+                {
+                    ParameterName = "@artistName",
+                    Value = artist.artistName,
+                    Direction = ParameterDirection.Input,
+                    SqlDbType = SqlDbType.VarChar
+                };
+
+                var param2 = new SqlParameter
+                {
+                    ParameterName = "@artistID",
+                    Value = -1,
+                    Direction = ParameterDirection.Output,
+                    SqlDbType = SqlDbType.Int
+                };
+
+                try
+                {
+                    var resultOfQuery = songContext.Database.ExecuteSqlCommand("exec insertArtistIntoDB @artistName , @artistID OUTPUT", param1, param2);
+                }
+                catch
+                { }
+
+                return artist.artistId;
+            }          
+        }
+
+        /// <summary>
+        /// Returns id of inserted song,if song already exists this function will return -1
+        /// </summary>
+        /// <param name="song">Songs to insert</param>
+        /// <param name="Listen">Is song need to be listened or not</param>
+        /// <returns>Returns id of inserted song</returns>
+        public int InsertSongIntoDb(Song song,string Listen)
+        {
+            using (SongContext songContext = new SongContext())
+            {
+                var param1 = new SqlParameter
+                {
+                    ParameterName = "@songName",
+                    Value = song.songName,
+                    Direction = ParameterDirection.Input,
+                    SqlDbType = SqlDbType.VarChar
+                };
+
+                var param2 = new SqlParameter
+                {
+                    ParameterName = "@artistID",
+                    Value = song.artist.artistId,
+                    Direction = ParameterDirection.Input,
+                    SqlDbType = SqlDbType.Int
+                };
+
+                var param3 = new SqlParameter
+                {
+                    ParameterName = "@listen",
+                    Value = Listen,
+                    Direction = ParameterDirection.Input,
+                    SqlDbType = SqlDbType.VarChar
+                };
+
+                var param4 = new SqlParameter
+                {
+                    ParameterName = "@songID",
+                    Value = -1,
+                    Direction = ParameterDirection.Output,
+                    SqlDbType = SqlDbType.Int
+                };
+
+                try
+                {
+                    var resultOfQuery = songContext.Database.ExecuteSqlCommand("EXEC insertSongIntoDB @songName, @artistID, @listen , @songID OUTPUT", param1, param2, param3, param4);
+                }
+                catch
+                { }
+
+                return song.songId;
+            }          
+        }
+
+        private void UpdateDateInDb(Days days)
+        {
+
+            using (SongContext songContext = new SongContext())
+            {
+                var param1 = new SqlParameter
+                {
+                    ParameterName = "@dayID",
+                    Value = days.id,
+                    Direction = ParameterDirection.Input,
+                    SqlDbType = SqlDbType.Int
+                };
+
+                var resultOfQuery = songContext.Database.ExecuteSqlCommand("EXEC updateDay @dayID", param1);
+            }           
+        }
+
+        public void InsertSimplifiedSongsIntoDb(List<SimplifiedSong> simplifiedSongs)
+        {
+            Parallel.ForEach(simplifiedSongs, song =>
+            {
+                using (SongContext songContext = new SongContext())
+                {
+                    var param1 = new SqlParameter
+                    {
+                        ParameterName = "@songName",
+                        Value = song.SongName,
+                        Direction = ParameterDirection.Input,
+                        SqlDbType = SqlDbType.VarChar
+                    };
+
+                    var param2 = new SqlParameter
+                    {
+                        ParameterName = "@listen",
+                        Value = song.Listen,
+                        Direction = ParameterDirection.Input,
+                        SqlDbType = SqlDbType.VarChar
+                    };
+
+                    try
+                    {
+                        var resultOfQuery = songContext.Database.ExecuteSqlCommand("EXEC InsertSimplifiedSongsIntoDb @songName, @listen", param1, param2);
+                    }
+                    catch
+                    { }
+
+                }
+            });
+            simplifiedSongs = null;
+        }
+        #endregion
+
+        #region Gets
+        public int GetArtistIdByName(Artist artist)
+        {
+            using (SongContext songContext = new SongContext())
+            {
+                var artistsWithSearchName = (from element in songContext.artists.AsParallel() where element.name == artist.artistName select element.ArtistsId).ToList();
+                return artistsWithSearchName.Count == 0 ? -1 : artistsWithSearchName[0];
+            }           
+        }
+
+        public int GetSongIdByName(Song song)
+        {
+            using (SongContext songContext = new SongContext())
+            {
+                var songsWithSearchName = (from element in songContext.songs.AsParallel() where element.songName == song.songName select element.SongsId).ToList();
+                return songsWithSearchName.Count == 0 ? -1 : songsWithSearchName[0];
+            }           
+        }
+        #endregion
+
+
+        #region Functions
+        public void StartDump()
+        {
+            var days = (from element in context.days where element.processed == "false" select element).ToList();
+            DumpSongsFromListAsync(days);
+            //var res = Chunk.ChunkBy(days, days.Count / 4);
+            //Parallel.ForEach(res, item =>
+            //{
+            //    DumpSongsFromListAsync(item);
+            //});
+        }
 
 
         public void fillDatesUpToNow()
@@ -349,210 +573,107 @@ namespace AntiRadioRecord
             {
                 date = Convert.ToDateTime(lastDate);
             }
-            if(date!=dtNow)
-            while (date <= dtNow)
-            {
-                string insertingDate = getDateStr(date);
-                context.days.Add(new Days() { day = insertingDate, processed = "false" });
-                File.WriteAllText(Directory.GetCurrentDirectory() + "\\lastDate.txt", date.ToString());
-                writer(date.ToString());
-                date = date.AddDays(1);
-            }
+            if (date != dtNow)
+                while (date <= dtNow)
+                {
+                    string insertingDate = getDateStr(date);
+                    context.days.Add(new Days() { day = insertingDate, processed = "false" });
+                    File.WriteAllText(Directory.GetCurrentDirectory() + "\\lastDate.txt", date.ToString());
+                    writer(date.ToString());
+                    date = date.AddDays(1);
+                }
             context.SaveChanges();
         }
 
-        #region Inserts
-        /// <summary>
-        /// Returns id of inserted artist,if artist already exists this function will return -1
-        /// </summary>
-        /// <param name="artist">name of inserted artist</param>
-        /// <returns>Returns id of inserted artist</returns>
-        public int InsertArtistIntoDb(Artist artist)
-        {
-            var param1 = new SqlParameter
-            {
-                ParameterName = "@artistName",
-                Value = artist.artistName,
-                Direction = ParameterDirection.Input,
-                SqlDbType = SqlDbType.VarChar
-            };
-
-            var param2 = new SqlParameter
-            {
-                ParameterName = "@artistID",
-                Value = -1,
-                Direction = ParameterDirection.Output,
-                SqlDbType = SqlDbType.Int
-            };
-
-            try
-            {
-                var resultOfQuery = context.Database.ExecuteSqlCommand("exec insertArtistIntoDB @artistName , @artistID OUTPUT", param1, param2);
-            }
-            catch
-            {}
-
-            return artist.artistId;
-        }
-
-        /// <summary>
-        /// Returns id of inserted song,if song already exists this function will return -1
-        /// </summary>
-        /// <param name="song">Songs to insert</param>
-        /// <param name="Listen">Is song need to be listened or not</param>
-        /// <returns>Returns id of inserted song</returns>
-        public int InsertSongIntoDb(Song song,string Listen)
-        {
-            var param1 = new SqlParameter
-            {
-                ParameterName = "@songName",
-                Value = song.songName,
-                Direction = ParameterDirection.Input,
-                SqlDbType = SqlDbType.VarChar
-            };
-
-            var param2 = new SqlParameter
-            {
-                ParameterName = "@artistID",
-                Value = song.artist.artistId,
-                Direction = ParameterDirection.Input,
-                SqlDbType = SqlDbType.Int
-            };
-
-            var param3 = new SqlParameter
-            {
-                ParameterName = "@listen",
-                Value = Listen,
-                Direction = ParameterDirection.Input,
-                SqlDbType = SqlDbType.VarChar
-            };
-
-            var param4 = new SqlParameter
-            {
-                ParameterName = "@songID",
-                Value = -1,
-                Direction = ParameterDirection.Output,
-                SqlDbType = SqlDbType.Int
-            };
-
-            try
-            {
-                var resultOfQuery = context.Database.ExecuteSqlCommand("EXEC insertSongIntoDB @songName, @artistID, @listen , @songID OUTPUT", param1, param2, param3, param4);
-            }
-            catch
-            { }
-
-            return song.songId;
-
-        }
-        #endregion
-
-        #region Gets
-        public int GetArtistIdByName(Artist artist)
-        {
-            if(artist.artistName== "Pendulum")
-            {
-                int c = 1;
-            }
-            var artistsWithSearchName = (from element in context.artists.AsParallel() where element.name == artist.artistName select element.ArtistsId).ToList();
-            return artistsWithSearchName.Count == 0 ? - 1 : artistsWithSearchName[0];
-        }
-
-        public int GetSongIdByName(Song song)
-        {
-            var songsWithSearchName = (from element in context.songs.AsParallel() where element.songName == song.songName select element.SongsId).ToList();
-            return songsWithSearchName.Count == 0 ? -1 : songsWithSearchName[0];
-        }
-        #endregion
-
-        private void UpdateDateInDb(Days days)
-        {
-            var param1 = new SqlParameter
-            {
-                ParameterName = "@dayID",
-                Value = days.id,
-                Direction = ParameterDirection.Input,
-                SqlDbType = SqlDbType.Int
-            };
-
-                var resultOfQuery = context.Database.ExecuteSqlCommand("EXEC updateDay @dayID", param1 );
-        }
-
-        public void StartDump()
-        {
-            var days = (from element in context.days where element.processed == "false" select element).ToList();
-            dumpSongsFromListAsync(days);
-            //var res = Chunk.ChunkBy(days, days.Count / 2);
-            //Parallel.ForEach(res, item =>
-            //{
-            //    dumpSongsFromList(item);
-            //});
-        }
-
-        private async void dumpSongsFromListAsync(List<Days> days)
+        private async void DumpSongsFromListAsync(List<Days> days)
         {
             foreach (var Day in days)
             {
                 pageParser data;
                 data = new pageParser("http://www.moreradio.org/playlist_radio/radio_record_fm/" + Day.day);
-                List<Song> songs = new List<Song>();
-                songs = await data.getSongsAsync();
 
-                if(songs!=null)
-                for (int i = 0; i < songs.Count; i++)
+                #region Simplified Downloader Whith Duplicates
+                //using (SongContext songContext = new SongContext())
+                //{
+                //    using (SongList songList = new SongList(await data.getSongsAsync()))
+                //    {
+                //        if(!songList.IsIntraListNull)
+                //        {
+                //            context.simplifiedSongs.AddRange((from element in songList.ToList().AsParallel() select element.ToSimplifiedSong()).ToList());
+                //            context.SaveChanges();
+                //        }                                                
+                //    }
+                //}
+                #endregion
+
+                #region Simplified Downloader Whith Out Duplicates
+                using (SongList songList = new SongList(await data.getSongsAsync()))
                 {
-                    if (songs[i].isRussianRetardedSong != true)
+                    if (!songList.IsIntraListNull)
                     {
-                        if (songs[i].artist.artistId == -1)
-                        {
-
-                            int id = InsertArtistIntoDb(songs[i].artist);
-                            if (id == -1)
-                            {
-                                songs[i].artist.getArtistId();
-                            }
-                            else
-                            {
-                                songs[i].artist.artistId = id;
-                            }
-                        }
-
-                        if (songs[i].artist.artistId != -1)
-                        {
-                            InsertSongIntoDb(songs[i], "true");
-                        }
+                        InsertSimplifiedSongsIntoDb((from song in songList.ToList().AsParallel() select song.ToSimplifiedSong()).ToList());
                     }
-                    else
-                    {
-                        if (songs[i].artist.artistId == -1)
-                        {
+                }                
+                #endregion
 
-                            int id = InsertArtistIntoDb(songs[i].artist);
-                            if (id == -1)
-                            {
-                                songs[i].artist.getArtistId();
-                            }
-                            else
-                            {
-                                songs[i].artist.artistId = id;
-                            }
-                        }
+                #region Main Downloader(Very heavy and very long in time)
+                //if(songs!=null)
+                //for (int i = 0; i < songs.Count; i++)
+                //{
+                //    if (songs[i].isRussianRetardedSong != true)
+                //    {
+                //        if (songs[i].artist.artistId == -1)
+                //        {
 
-                        if (songs[i].artist.artistId != -1)
-                        {
-                            InsertSongIntoDb(songs[i], "true");
-                        }
-                    }
-                }
+                //            int id = InsertArtistIntoDb(songs[i].artist);
+                //            if (id == -1)
+                //            {
+                //                songs[i].artist.getArtistId();
+                //            }
+                //            else
+                //            {
+                //                songs[i].artist.artistId = id;
+                //            }
+                //        }
+
+                //        if (songs[i].artist.artistId != -1)
+                //        {
+                //            InsertSongIntoDb(songs[i], "true");
+                //        }
+                //    }
+                //    else
+                //    {
+                //        if (songs[i].artist.artistId == -1)
+                //        {
+
+                //            int id = InsertArtistIntoDb(songs[i].artist);
+                //            if (id == -1)
+                //            {
+                //                songs[i].artist.getArtistId();
+                //            }
+                //            else
+                //            {
+                //                songs[i].artist.artistId = id;
+                //            }
+                //        }
+
+                //        if (songs[i].artist.artistId != -1)
+                //        {
+                //            InsertSongIntoDb(songs[i], "true");
+                //        }
+                //    }
+                //}
+                #endregion
+
 
                 data = null;
-                songs = null;
                 increasePB();
                 UpdateDateInDb(Day);
                 writer(Day.day);
                 GC.Collect();
-            }      
+            }
+            closeFunction();
         }
-
+        #endregion
     }
 }
