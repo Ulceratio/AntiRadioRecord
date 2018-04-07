@@ -5,8 +5,45 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AntiRadioRecord"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen">
+        Title="MainWindow" Height="500" Width="525" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+      
+
+    </Window.Resources>
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="0.10*"></RowDefinition>
+            <RowDefinition Height="0.60*"></RowDefinition>
+            <RowDefinition Height="0.20*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Rectangle Grid.Row="0" Grid.RowSpan="3" Opacity="0.7">
+            <Rectangle.Fill>
+                <LinearGradientBrush>
+                    <GradientStop Color="#FF041313" Offset="0"></GradientStop>
+                    <GradientStop Color="#FF1F180B" Offset="0.5"></GradientStop>
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+        <Grid Grid.Row="2" Name="BottomGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.2*"></ColumnDefinition>
+                <ColumnDefinition Width="0.5*"></ColumnDefinition>
+                <ColumnDefinition Width="0.3*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Name="PlayStop" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"></Button>
+            <TextBlock Grid.Column="1" Name="CurrentSongOnRadio" HorizontalAlignment="Stretch" VerticalAlignment="Center"></TextBlock>
+            <Slider Grid.Column="2" Name="Volume" HorizontalAlignment="Stretch" VerticalAlignment="Center"></Slider>
+        </Grid>
+
+        <Grid Grid.Row="1" Name="CenterGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.2*"></ColumnDefinition>
+                <ColumnDefinition Width="0.5*"></ColumnDefinition>
+                <ColumnDefinition Width="0.3*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="1" Name="ChangeCover" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                <Image Name="CoverImage"></Image>
+            </Button>
+        </Grid>
     </Grid>
 </Window>

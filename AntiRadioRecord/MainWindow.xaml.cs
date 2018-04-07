@@ -23,6 +23,8 @@ namespace AntiRadioRecord
         public MainWindow()
         {
             InitializeComponent();
+            AllowsTransparency = true;
+            WindowStyle = WindowStyle.None;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
