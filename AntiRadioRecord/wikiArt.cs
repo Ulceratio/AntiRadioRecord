@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Threading;
 
-namespace antiRR
+namespace AntiRadioRecord
 {
 
     class WikiArt

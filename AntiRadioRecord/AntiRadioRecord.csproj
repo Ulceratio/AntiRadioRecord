@@ -69,6 +69,7 @@
     </ApplicationDefinition>
     <Compile Include="gateToDB.cs" />
     <Compile Include="pageParser.cs" />
+    <Compile Include="RadioRecord.cs" />
     <Compile Include="SongDownloaderWindow.xaml.cs">
       <DependentUpon>SongDownloaderWindow.xaml</DependentUpon>
     </Compile>
