@@ -97,7 +97,7 @@ namespace antiRR
         #endregion
 
         #region Constructors
-        public wikiArt()
+        public WikiArt()
         {
             client = new HttpClient();
             RequestCounter = 0;
