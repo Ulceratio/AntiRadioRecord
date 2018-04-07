@@ -8,7 +8,7 @@ using AngleSharp.Parser.Html;
 using System.Net.Http;
 using System.IO;
 
-namespace antiRR
+namespace AntiRadioRecord
 {
     public class vkmDownload
     {
@@ -26,6 +26,13 @@ namespace antiRR
         {
             this.searchString = searchString;
             client = new HttpClient();          
+            client.DefaultRequestHeaders.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
+            parser = new HtmlParser();
+        }
+
+        public vkmDownload()
+        {
+            client = new HttpClient();
             client.DefaultRequestHeaders.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
             parser = new HtmlParser();
         }
