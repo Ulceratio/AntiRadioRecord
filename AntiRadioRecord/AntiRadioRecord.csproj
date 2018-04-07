@@ -67,12 +67,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AntiRadioRecord.cs" />
     <Compile Include="gateToDB.cs" />
     <Compile Include="pageParser.cs" />
     <Compile Include="RadioRecord.cs" />
     <Compile Include="SongDownloaderWindow.xaml.cs">
       <DependentUpon>SongDownloaderWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="vkmDownload.cs" />
     <Compile Include="wikiArt.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
