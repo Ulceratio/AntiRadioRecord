@@ -13,11 +13,20 @@ namespace AntiRadioRecord
     public class vkmDownload
     {
         #region Fields
-        public string searchString;
+        public string searchString { get; set; }
         private HttpClient client;
         private HtmlParser parser;
-        private string adress = "https://downloadmusicvk.ru";
-        private string mainAdress = "https://downloadmusicvk.ru/audio/search?q=";
+        private string adressForDownloadMusicVk = "https://downloadmusicvk.ru";
+        private string mainAdressForDownloadMusicVk = "https://downloadmusicvk.ru/audio/search?q=";
+        private string adressForMusic7s = "https://music7s.me/";
+
+        private string mainAdressForMusic7s 
+        {
+            get
+            {
+                return "https://music7s.me/search.php?search=" + $"{searchString}" + "&count=5&sort=2";
+            }
+        }
         public string downloadString;
         #endregion
 
@@ -39,12 +48,15 @@ namespace AntiRadioRecord
         #endregion
 
         #region Main Functions
+
         private async Task<string> getWebPageAsync(string HttpRrequest)
         {
             Stream data = await client.GetStreamAsync(HttpRrequest);
             StreamReader reader = new StreamReader(data, Encoding.GetEncoding("utf-8"));
             return reader.ReadToEnd();
         }
+
+        #region Download from https://downloadmusicvk.ru
 
         private string getFirstLink(string webPage)
         {
@@ -61,21 +73,58 @@ namespace AntiRadioRecord
             return res;
         }
 
-        public async Task<byte[]> GetMp3Async()
+        public async Task<byte[]> GetMp3FromDownloadMusicVkAsync()
         {
-            string firstLink = getFirstLink((await getWebPageAsync(mainAdress + searchString)));
-            string link = getSecondLink(await getWebPageAsync(adress + firstLink));
-            byte[] file = await client.GetByteArrayAsync(new Uri(adress + link));
+            string firstLink = getFirstLink((await getWebPageAsync(mainAdressForDownloadMusicVk + searchString)));
+            string link = getSecondLink(await getWebPageAsync(adressForDownloadMusicVk + firstLink));
+            byte[] file = await client.GetByteArrayAsync(new Uri(adressForDownloadMusicVk + link));
             return file;
         }
 
-        public async Task<byte[]> GetMp3Async(string inputSearchString)
+        public async Task<byte[]> GetMp3FromDownloadMusicVkAsync(string inputSearchString)
         {
-            string firstLink = getFirstLink((await getWebPageAsync(mainAdress + inputSearchString)));
-            string link = getSecondLink(await getWebPageAsync(adress + firstLink));
-            byte[] file = await client.GetByteArrayAsync(new Uri(adress + link));
+            string firstLink = getFirstLink((await getWebPageAsync(mainAdressForDownloadMusicVk + inputSearchString)));
+            string link = getSecondLink(await getWebPageAsync(adressForDownloadMusicVk + firstLink));
+            byte[] file = await client.GetByteArrayAsync(new Uri(adressForDownloadMusicVk + link));
             return file;
         }
+        #endregion
+
+        #region Download from https://music7s.me/
+
+        private async Task<string> GetDownloadlinkFromMusic7s(string inputSearchString)
+        {
+            searchString = inputSearchString;
+            string webPage = await getWebPageAsync(mainAdressForMusic7s);
+            var doc = parser.Parse(webPage);
+            try
+            {
+                var element = doc.All.FirstOrDefault((x) => x.ClassName == "download_link ");
+                if(element != null)
+                {
+                    string link = element.GetAttribute("href");
+                    return link;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public async Task<byte[]> GetMp3ForMusic7sAsync(string inputSearchString)
+        {
+            string downloadLink = await GetDownloadlinkFromMusic7s(inputSearchString);
+            byte[] file = await client.GetByteArrayAsync(new Uri(adressForMusic7s + downloadLink));
+            return file;
+        }
+
+        #endregion
+
         #endregion
 
     }

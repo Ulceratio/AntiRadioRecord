@@ -152,6 +152,7 @@ namespace AntiRadioRecord
         {
             artist = new Artist();
         }
+
         #endregion
 
         #region Functions

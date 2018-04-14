@@ -299,20 +299,34 @@ namespace AntiRadioRecord
             }
         }
         public bool isDbExist;
-        Action<string> writer;
-        Action increasePB;
-        Action closeFunction;
+        private Action<string> writer;
+        private Action increasePB;
+        private Action closeFunction;
         public SongContext context;
+        private Random random;
+        public string GetRandomSong
+        {
+            get
+            {
+                using (SongContext songContext = new SongContext())
+                {
+                    var randomSong = songContext.songs.ElementAt(random.Next(0, songContext.songs.Count()-1)).songName;
+                    return randomSong;
+                }
+            }
+        }
         #endregion
 
         #region Constructors
         public gateToDB()
         {
             context = new SongContext();
+            random = new Random();
         }
 
         public gateToDB(Action<string> writer, Action increasePB , Action closeFunction)
         {
+            random = new Random();
             this.writer = writer;
             this.increasePB = increasePB;
             this.closeFunction = closeFunction;
@@ -376,7 +390,6 @@ namespace AntiRadioRecord
         }
 
         #endregion
-
 
         #region Inserts And Update
         /// <summary>
@@ -538,8 +551,17 @@ namespace AntiRadioRecord
                 return songsWithSearchName.Count == 0 ? -1 : songsWithSearchName[0];
             }           
         }
-        #endregion
 
+        public int GetSongIdByName(string songName)
+        {
+            using (SongContext songContext = new SongContext())
+            {
+                var songsWithSearchName = (from element in songContext.songs.AsParallel() where element.songName == songName select element.SongsId).ToList();
+                return songsWithSearchName.Count == 0 ? -1 : songsWithSearchName[0];
+            }
+        }
+
+        #endregion
 
         #region Functions
         public void StartDump()

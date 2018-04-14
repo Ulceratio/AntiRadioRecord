@@ -20,12 +20,15 @@ namespace AntiRadioRecord
     /// </summary>
     public partial class SongDownloaderWindow : Window
     {
-        gateToDB gate;
+        #region Fields
+        private gateToDB gate;
+        private Action BuilderAfterDownload;
+        #endregion
 
-        public SongDownloaderWindow()
+        public SongDownloaderWindow(Action BuilderAfterDownload)
         {
             InitializeComponent();
-
+            this.BuilderAfterDownload = BuilderAfterDownload;
             this.WindowStyle = WindowStyle.None;
             this.AllowsTransparency = true;
             //gate = new gateToDB(writeInTB,increasePB);
@@ -33,7 +36,8 @@ namespace AntiRadioRecord
 
         private async void start()
         {
-            await Task.Run(() => {
+            await Task.Run(() => 
+            {
                 gate = new gateToDB(writeInTB,increasePB,CloseFunction);
                 this.Dispatcher.Invoke(() => {
                     AmountOfSongs.Minimum = 0;
@@ -62,8 +66,8 @@ namespace AntiRadioRecord
         private async void startGettingSongs()
         {
             await Task.Run(() => {
-
                 gate.StartDump();
+                BuilderAfterDownload();
             });
         }
 
