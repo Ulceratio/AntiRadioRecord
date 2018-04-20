@@ -11,15 +11,21 @@ namespace AntiRadioRecord
     {
         #region Fields
         public List<Song> SongsOnAir;
+
         public List<WikiArt.Painting> paintings;
+
         private RadioRecord radioRecord;
-        public event Action changeMusic;
-        public event Action onSongFinished;
+
         private WikiArt wikiArt;
+
         private Random random;
+
         public List<byte[]> BufferedSongs;
+
         private vkmDownload download;
+
         private gateToDB gate;
+
         private bool _ReadyToPlay { get; set; }
         public bool ReadyToPlay
         {
@@ -28,11 +34,14 @@ namespace AntiRadioRecord
                 return _ReadyToPlay;
             }
         }
+
+        private Action ChangeMusicInPlayer;
         #endregion
 
         #region Constructors
-        public AntiRadioRecordWave()
+        public AntiRadioRecordWave(Action ChangeMusicInPlayer)
         {
+            this.ChangeMusicInPlayer = ChangeMusicInPlayer;
             download = new vkmDownload();
             _ReadyToPlay = false;
             gate = new gateToDB();
@@ -67,47 +76,51 @@ namespace AntiRadioRecord
             Song currentSong = radioRecord.currentSong;
             if(checkSong(currentSong))
             {
-                SongsOnAir.Add(currentSong);
-                UpdateBufferOfSongs();
-                if (SongsOnAir.Count == 1)
-                {
-                    changeMusic();
-                }
+                AddInSongsOnRadioList(currentSong, SongsOnAir, UpdateBufferOfSongs);
             }
             else
             {
                 Task.Run(() => 
                 {
                     currentSong = new Song(gate.GetRandomSong);
-                    SongsOnAir.Add(currentSong);
-                    UpdateBufferOfSongs();
-                    if (SongsOnAir.Count == 1)
-                    {
-                        changeMusic();
-                    }
+                    AddInSongsOnRadioList(currentSong, SongsOnAir, UpdateBufferOfSongs);
                 });
             }
-        }
-
-        public async void ChangeMusic()
-        {
-            changeMusic();
-            BufferedSongs[0] = await download.GetMp3FromDownloadMusicVkAsync(SongsOnAir[0].songName);
+            if(SongsOnAir.Count == 1)
+            {
+                currentSong = new Song(gate.GetRandomSong);
+                AddInSongsOnRadioList(currentSong, SongsOnAir, UpdateBufferOfSongs);
+            }
         }
 
         public void SongOnRadioFinished()
         {
             BufferedSongs.RemoveAt(0);
             SongsOnAir.RemoveAt(0);
+            ChangeMusicInPlayer();
             UpdateBufferOfSongs();
         }
 
-        private async void UpdateBufferOfSongs()
+        private void UpdateBufferOfSongs()
         {
-            if (BufferedSongs.Count <= 1 && BufferedSongs.Count < BufferedSongs.Capacity)
+            if (BufferedSongs.Count < 1 && BufferedSongs.Count < BufferedSongs.Capacity)
             {
-                BufferedSongs.Add(await download.GetMp3FromDownloadMusicVkAsync(SongsOnAir[0].songName));
+                BufferedSongs.Add(GetDownloadedSong(SongsOnAir[0].ToString()));
+                ChangeMusicInPlayer();
             }
+            if (BufferedSongs.Count < 2 && BufferedSongs.Count < BufferedSongs.Capacity && SongsOnAir.Count>=2)
+            {
+                BufferedSongs.Add(GetDownloadedSong(SongsOnAir[1].ToString()));
+            }
+        }
+
+        public byte[] GetDownloadedSong(string SongName)
+        {
+            byte[] DownloadedSong = null;
+            var task = Task.Run(async () => await download.GetMp3ForMusic7sAsync(SongName));
+            task.Wait();
+            DownloadedSong = task.Result;
+            return DownloadedSong;
         }
 
         public byte[] GetCurrentSongOnRadioPlaying()
@@ -126,12 +139,28 @@ namespace AntiRadioRecord
         {
             if(song.artist.artistName!=null && song.songName!=null)
             {
-                if (Regex.IsMatch(song.songName, "([А-ЯЁ][а-яё]+)") || Regex.IsMatch(song.artist.artistName, "([А-ЯЁ][а-яё]+)") || song.songName == "Record Dance Radio")
+                if(song.artist.artistName == "Record Dance Radio")
+                {
+                    return false;
+                }
+                if (Regex.IsMatch(song.songName, "([А-ЯЁ][а-яё]+)") || Regex.IsMatch(song.artist.artistName, "([А-ЯЁ][а-яё]+)") || SongsOnAir.Contains(song))
                 {
                     return false;
                 }
             }          
             return true;
+        }
+
+        private static void AddInSongsOnRadioList(Song song, List<Song> SongsOnAir , Action UpdateBuffer)
+        {
+            if(SongsOnAir.Contains(song) == false && song.artist.artistName != "Record Dance Radio")
+            {
+                lock (SongsOnAir)
+                {
+                    SongsOnAir.Add(song);
+                    UpdateBuffer();
+                }
+            }
         }
         #endregion
 

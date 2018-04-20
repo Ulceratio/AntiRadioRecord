@@ -24,7 +24,7 @@ namespace AntiRadioRecord
         {
             get
             {
-                return "https://music7s.me/search.php?search=" + $"{searchString}" + "&count=5&sort=2";
+                return "https://music7s.me/search.php?search=" + $"{searchString}";// + "&count=5&sort=2";
             }
         }
         public string downloadString;
@@ -102,8 +102,7 @@ namespace AntiRadioRecord
                 var element = doc.All.FirstOrDefault((x) => x.ClassName == "download_link ");
                 if(element != null)
                 {
-                    string link = element.GetAttribute("href");
-                    return link;
+                    return element.GetAttribute("href");
                 }
                 else
                 {
@@ -118,9 +117,16 @@ namespace AntiRadioRecord
 
         public async Task<byte[]> GetMp3ForMusic7sAsync(string inputSearchString)
         {
-            string downloadLink = await GetDownloadlinkFromMusic7s(inputSearchString);
-            byte[] file = await client.GetByteArrayAsync(new Uri(adressForMusic7s + downloadLink));
-            return file;
+            try
+            {
+                string downloadLink = await GetDownloadlinkFromMusic7s(inputSearchString.Replace(" ", "+").Replace("(", "%28").Replace(")", "%29"));
+                byte[] file = await client.GetByteArrayAsync(new Uri(adressForMusic7s + downloadLink));
+                return file;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         #endregion

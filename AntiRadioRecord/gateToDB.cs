@@ -310,7 +310,7 @@ namespace AntiRadioRecord
             {
                 using (SongContext songContext = new SongContext())
                 {
-                    var randomSong = songContext.songs.ElementAt(random.Next(0, songContext.songs.Count()-1)).songName;
+                    var randomSong = songContext.simplifiedSongs.ToList()[(random.Next(0, songContext.simplifiedSongs.Count()-1))].SongName;
                     return randomSong;
                 }
             }

@@ -102,6 +102,7 @@ namespace AntiRadioRecord
             });
             t.Wait();
             resultOfDes = null;
+            GC.Collect();
             return song;
         }
 
