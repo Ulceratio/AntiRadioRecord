@@ -125,6 +125,7 @@ namespace AntiRadioRecord
             }
         }
         public bool isRussianRetardedSong;
+        public byte[] SongFile { get; set; }
         #endregion
 
         #region Constructors

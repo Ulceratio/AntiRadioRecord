@@ -37,7 +37,7 @@ namespace AntiRadioRecord
             WindowStyle = WindowStyle.None;            
         }
 
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             //SongDownloaderWindow downloaderWindow = new SongDownloaderWindow(Builder);
             //downloaderWindow.Owner = this;
@@ -80,10 +80,11 @@ namespace AntiRadioRecord
         {
             await Task.Run(async () =>
             {
+                Song songToPlay = null;
                 try
                 {
-                    var songToPlay = antiRadioRecord.GetCurrentSongOnRadioPlaying();
-                    Mp3FileReader reader = new Mp3FileReader(new MemoryStream(songToPlay));
+                    songToPlay = antiRadioRecord.GetCurrentSongOnRadioPlaying();
+                    Mp3FileReader reader = new Mp3FileReader(new MemoryStream(songToPlay.SongFile));
                     player.Init(reader);
                     if(IsMusicPlaying)
                     {
@@ -94,31 +95,35 @@ namespace AntiRadioRecord
                         PlayerInitialized = true;
                     }
                 }
-                catch 
+                catch(Exception ex) 
                 {
-                    if(antiRadioRecord.BufferedSongs.Count==0)
-                    {
-                        var songToPlay = antiRadioRecord.GetDownloadedSong(antiRadioRecord.SongsOnAir[0].ToString());
-                        antiRadioRecord.BufferedSongs.Add(songToPlay);
-                        Mp3FileReader reader = new Mp3FileReader(new MemoryStream(songToPlay));
-                        player.Init(reader);
-                        if (IsMusicPlaying)
-                        {
-                            player.Play();
-                        }
-                        if (!PlayerInitialized)
-                        {
-                            PlayerInitialized = true;
-                        }
-                    }
-                    else
-                    {
-                        OnMusicStopped(null, null);
-                    }
+                    MessageBox.Show(ex.Message);
+                    //if(antiRadioRecord.BufferedSongs.Count==0)
+                    //{
+                    //    var songToPlay = antiRadioRecord.GetDownloadedSong(antiRadioRecord.SongsOnAir[0].ToString());
+                    //    antiRadioRecord.BufferedSongs.Add(songToPlay);
+                    //    Mp3FileReader reader = new Mp3FileReader(new MemoryStream(songToPlay));
+                    //    player.Init(reader);
+                    //    if (IsMusicPlaying)
+                    //    {
+                    //        player.Play();
+                    //    }
+                    //    if (!PlayerInitialized)
+                    //    {
+                    //        PlayerInitialized = true;
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    OnMusicStopped(null, null);
+                    //}
                 }                
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    CurrentSongOnRadio.Text = antiRadioRecord.SongsOnAir[0].ToString();
+                    if(songToPlay != null)
+                    {
+                        CurrentSongOnRadio.Text = songToPlay.ToString();
+                    }
                     UnLockAllElements();
                 });
                 ChangeCover();
@@ -173,7 +178,7 @@ namespace AntiRadioRecord
         {
             player.Stop();
             antiRadioRecord.SongOnRadioFinished();
-            ChangeMusicInPlayer();
+            //ChangeMusicInPlayer();
         }
 
         private void Volume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

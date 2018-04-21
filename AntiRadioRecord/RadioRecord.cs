@@ -56,15 +56,16 @@ namespace AntiRadioRecord
         private string URL = "http://history.radiorecord.ru/index-json-formatted.php?station=rr"; // Record Dance Radio
         private HttpClient client;
         private HtmlParser parser;
-        public event Changes OnSongChange;
+        public  Action OnSongChange;
         public Song currentSong;
         private System.Timers.Timer timer;
+        private static object Locker = new object();
         #endregion
 
         #region Constructors
-        public RadioRecord(Changes changes)
+        public RadioRecord(Action changes)
         {
-            OnSongChange += changes;
+            this.OnSongChange = changes;
             currentSong = null;
             client = new HttpClient();
             parser = new HtmlParser();
@@ -109,31 +110,34 @@ namespace AntiRadioRecord
         private void Tick()
         {
             Song song = null;
-            try
+            lock(Locker)
             {
-                song = GetSong();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-            if(currentSong != null)
-            {
-                if(song != null)
+                try
                 {
-                    if (currentSong != song)
+                    song = GetSong();
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+                if (currentSong != null)
+                {
+                    if (song != null)
                     {
-                        currentSong = song;
-                        OnSongChange();
+                        if (currentSong != song)
+                        {
+                            currentSong = song.Clone();
+                            OnSongChange();
+                        }
                     }
                 }
-            }          
 
-            if(currentSong == null)
-            {
-                currentSong = song;
-                OnSongChange();
-            }
+                if (currentSong == null)
+                {
+                    currentSong = song.Clone();
+                    OnSongChange();
+                }
+            }            
         }
         #endregion
     }

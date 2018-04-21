@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace AntiRadioRecord
 {
@@ -19,8 +20,6 @@ namespace AntiRadioRecord
         private WikiArt wikiArt;
 
         private Random random;
-
-        public List<byte[]> BufferedSongs;
 
         private vkmDownload download;
 
@@ -45,8 +44,6 @@ namespace AntiRadioRecord
             download = new vkmDownload();
             _ReadyToPlay = false;
             gate = new gateToDB();
-            BufferedSongs = new List<byte[]>();
-            BufferedSongs.Capacity = 2;
             SongsOnAir = new List<Song>();
             radioRecord = new RadioRecord(getNewSong);
             random = new Random((int)DateTime.Now.ToBinary());
@@ -95,7 +92,6 @@ namespace AntiRadioRecord
 
         public void SongOnRadioFinished()
         {
-            BufferedSongs.RemoveAt(0);
             SongsOnAir.RemoveAt(0);
             ChangeMusicInPlayer();
             UpdateBufferOfSongs();
@@ -103,14 +99,19 @@ namespace AntiRadioRecord
 
         private void UpdateBufferOfSongs()
         {
-            if (BufferedSongs.Count < 1 && BufferedSongs.Count < BufferedSongs.Capacity)
+            if(SongsOnAir.Count > 0)
             {
-                BufferedSongs.Add(GetDownloadedSong(SongsOnAir[0].ToString()));
-                ChangeMusicInPlayer();
-            }
-            if (BufferedSongs.Count < 2 && BufferedSongs.Count < BufferedSongs.Capacity && SongsOnAir.Count>=2)
-            {
-                BufferedSongs.Add(GetDownloadedSong(SongsOnAir[1].ToString()));
+                Parallel.For(0, (SongsOnAir.Count >= 2 ? 2 : 1), (i) => 
+                {
+                    if (SongsOnAir[i].SongFile == null)
+                    {
+                        SongsOnAir[i].SongFile = GetDownloadedSong(SongsOnAir[i].ToString());
+                    }
+                });
+                if(SongsOnAir.Count == 1)
+                {
+                    ChangeMusicInPlayer();
+                }
             }
         }
 
@@ -123,16 +124,9 @@ namespace AntiRadioRecord
             return DownloadedSong;
         }
 
-        public byte[] GetCurrentSongOnRadioPlaying()
+        public Song GetCurrentSongOnRadioPlaying()
         {
-            if(BufferedSongs.Count != 0)
-            {
-                return BufferedSongs[0];
-            }
-            else
-            {
-                return null;
-            }
+            return SongsOnAir[0];
         }
 
         private bool checkSong(Song song)
@@ -158,6 +152,7 @@ namespace AntiRadioRecord
                 lock (SongsOnAir)
                 {
                     SongsOnAir.Add(song);
+                    Thread.Sleep(100);
                     UpdateBuffer();
                 }
             }
