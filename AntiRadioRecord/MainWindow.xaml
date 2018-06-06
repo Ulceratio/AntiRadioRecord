@@ -3,20 +3,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:CustomControls ="clr-namespace:CustomSlider;assembly=CustomSlider"
         xmlns:local="clr-namespace:AntiRadioRecord"
         mc:Ignorable="d"
         Title="MainWindow" Height="500" Width="525" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen">
-    <Window.Resources>
-      
-
-    </Window.Resources>
+    
     <Grid Name="mainGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="0.10*"></RowDefinition>
             <RowDefinition Height="0.60*"></RowDefinition>
             <RowDefinition Height="0.20*"></RowDefinition>
         </Grid.RowDefinitions>
-        <Rectangle Grid.Row="0" Grid.RowSpan="3" Opacity="0.7">
+        <Rectangle Grid.Row="0" Grid.RowSpan="3" Opacity="0.7" Panel.ZIndex="0">
             <Rectangle.Fill>
                 <LinearGradientBrush>
                     <GradientStop Color="#FF041313" Offset="0"></GradientStop>
@@ -30,14 +28,27 @@
                 <ColumnDefinition Width="0.5*"></ColumnDefinition>
                 <ColumnDefinition Width="0.3*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Name="PlayStop" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Click="PlayStop_Click"></Button>
+            <Button Grid.Column="0" Name="PlayStop" 
+                    VerticalAlignment="Stretch" 
+                    HorizontalAlignment="Stretch" 
+                    Click="PlayStop_Click"
+                    BorderThickness="0"
+                    Opacity="0.3">
+                <Image Name="PlayStopImage"></Image>
+                
+            </Button>
+            
             <TextBlock Grid.Column="1" Name="CurrentSongOnRadio" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center"></TextBlock>
-            <Slider Grid.Column="2" Name="Volume" HorizontalAlignment="Stretch" VerticalAlignment="Center" ValueChanged="Volume_ValueChanged"></Slider>
+
+            <CustomControls:SimpleSlider Grid.Column="2" x:Name="Volume" HeightForRectangles="3" HeightForRegulator="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ValueChanged="Volume_ValueChanged">
+
+            </CustomControls:SimpleSlider>
         </Grid>
 
         <Grid Grid.Row="1" Name="CenterGrid">
             <Image Name="CoverImage" MouseDown="CoverImage_MouseDown"></Image>
         </Grid>
+        
         
     </Grid>
 </Window>

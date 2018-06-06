@@ -118,7 +118,7 @@ namespace AntiRadioRecord
         public byte[] GetDownloadedSong(string SongName)
         {
             byte[] DownloadedSong = null;
-            var task = Task.Run(async () => await download.GetMp3ForMusic7sAsync(SongName));
+            var task = Task.Run(async () => await download.GetMp3(SongName));
             task.Wait();
             DownloadedSong = task.Result;
             return DownloadedSong;
@@ -131,12 +131,15 @@ namespace AntiRadioRecord
 
         private bool checkSong(Song song)
         {
-            if(song.artist.artistName!=null && song.songName!=null)
+            if(song.artist.artistName != null)
             {
-                if(song.artist.artistName == "Record Dance Radio")
+                if (song.artist.artistName == "Record Dance Radio")
                 {
                     return false;
                 }
+            }
+            if(song.artist.artistName!=null && song.songName!=null)
+            {
                 if (Regex.IsMatch(song.songName, "([А-ЯЁ][а-яё]+)") || Regex.IsMatch(song.artist.artistName, "([А-ЯЁ][а-яё]+)") || SongsOnAir.Contains(song))
                 {
                     return false;

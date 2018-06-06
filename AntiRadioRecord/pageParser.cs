@@ -221,6 +221,26 @@ namespace AntiRadioRecord
             return new gateToDB.SimplifiedSong() { SongName = this.ToString(), Listen = listen };
         }
 
+        public override bool Equals(object obj)
+        {
+            var song = obj as Song;
+            return song != null &&
+                   songName == song.songName;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = 782013459;
+            hashCode = hashCode * -1521134295 + _songID.GetHashCode();
+            hashCode = hashCode * -1521134295 + songId.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<Artist>.Default.GetHashCode(artist);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(SongName);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(songName);
+            hashCode = hashCode * -1521134295 + isRussianRetardedSong.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<byte[]>.Default.GetHashCode(SongFile);
+            return hashCode;
+        }
+
         public static bool operator !=(Song song1,Song song2)
         {
             bool check = false;
@@ -531,7 +551,7 @@ namespace AntiRadioRecord
                 }
                 return tempSong;
             }
-            catch (Exception ex)
+            catch //(Exception ex)
             {
                 //throw ex;
                 return null;

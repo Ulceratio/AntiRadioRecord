@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using System.IO;
 using NAudio;
 using NAudio.Wave;
+using System.Reflection;
 
 namespace AntiRadioRecord
 {
@@ -33,6 +34,7 @@ namespace AntiRadioRecord
         public MainWindow()
         {
             InitializeComponent();
+
             AllowsTransparency = true;
             WindowStyle = WindowStyle.None;            
         }
@@ -64,8 +66,16 @@ namespace AntiRadioRecord
             }
             if (PlayerInitialized)
             {
-                player.Play();
-                IsMusicPlaying = true;
+                if(!IsMusicPlaying)
+                {
+                    player.Play();
+                    IsMusicPlaying = true;
+                }
+                else
+                {
+                    player.Stop();
+                    IsMusicPlaying = false;
+                }
             }
             else
             {
@@ -74,7 +84,47 @@ namespace AntiRadioRecord
         }
 
         private bool PlayerInitialized { get; set; }
-        private bool IsMusicPlaying { get; set; }
+
+        private bool _IsMusicPlaying { get; set; }
+        private bool IsMusicPlaying
+        {
+            get
+            {
+                return _IsMusicPlaying;
+            }
+            set
+            {                
+                _IsMusicPlaying = value;
+
+                ChangePlayStopImage();
+            }
+        }
+
+        private void ChangePlayStopImage()
+        {
+            if (IsMusicPlaying)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    BitmapImage myBitmapImage = new BitmapImage();
+                    myBitmapImage.BeginInit();
+                    myBitmapImage.UriSource = new Uri("Pause.png", UriKind.Relative);
+                    myBitmapImage.EndInit();
+                    PlayStopImage.Source = myBitmapImage;
+                });
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    BitmapImage myBitmapImage = new BitmapImage();
+                    myBitmapImage.BeginInit();
+                    myBitmapImage.UriSource = new Uri("Play.png", UriKind.Relative);
+                    myBitmapImage.EndInit();
+                    PlayStopImage.Source = myBitmapImage;
+                });
+            }
+        }
 
         private async void ChangeMusicInPlayer()
         {
@@ -84,9 +134,32 @@ namespace AntiRadioRecord
                 try
                 {
                     songToPlay = antiRadioRecord.GetCurrentSongOnRadioPlaying();
+                    //File.WriteAllBytes("t.mp3", songToPlay.SongFile);
                     Mp3FileReader reader = new Mp3FileReader(new MemoryStream(songToPlay.SongFile));
-                    player.Init(reader);
-                    if(IsMusicPlaying)
+                    var totalTime = reader.TotalTime;
+                    if(totalTime.TotalMinutes < 3)
+                    {
+                        player.Init(reader);
+                    }
+                    if(totalTime.TotalMinutes >= 3 && totalTime.TotalMinutes < 4)
+                    {
+                        var needToSkip = totalTime.TotalMinutes * 0.1;
+                        reader.CurrentTime = TimeSpan.FromMinutes(needToSkip);
+                        player.Init(reader);
+                    }
+                    if (totalTime.TotalMinutes >= 4 && totalTime.TotalMinutes < 5)
+                    {
+                        var needToSkip = totalTime.TotalMinutes * 0.2;
+                        reader.CurrentTime = TimeSpan.FromMinutes(needToSkip);
+                        player.Init(reader);
+                    }
+                    if (totalTime.TotalMinutes >= 5)
+                    {
+                        var needToSkip = totalTime.TotalMinutes * 0.3;
+                        reader.CurrentTime = TimeSpan.FromMinutes(needToSkip);
+                        player.Init(reader);
+                    }
+                    if (IsMusicPlaying)
                     {
                         player.Play();
                     }
@@ -115,7 +188,11 @@ namespace AntiRadioRecord
                     //}
                     //else
                     //{
-                    //    OnMusicStopped(null, null);
+                    if(antiRadioRecord.SongsOnAir.Count>1)
+                    if(antiRadioRecord.SongsOnAir[1].SongFile!=null)
+                    {
+                        OnMusicStopped(null, null);
+                    }
                     //}
                 }                
                 await Dispatcher.InvokeAsync(() =>
@@ -139,10 +216,10 @@ namespace AntiRadioRecord
                 PlayerInitialized = false;
                 Volume.Dispatcher.Invoke(() =>
                 {
-                    Volume.Value = 1;
+                    Volume.Value = 0.5;
+                    player.Volume = (float)Volume.Value;
                 });
                 player.Volume = 0.1f;
-                player.PlaybackStopped += new EventHandler<StoppedEventArgs>(OnMusicStopped);
                 antiRadioRecord = new AntiRadioRecordWave(ChangeMusicInPlayer);
             });
         }
@@ -178,12 +255,12 @@ namespace AntiRadioRecord
         {
             player.Stop();
             antiRadioRecord.SongOnRadioFinished();
-            //ChangeMusicInPlayer();
+            
         }
 
-        private void Volume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void Volume_ValueChanged()
         {
-            player.Volume = (float)(Volume.Value / 10.0);
+            player.Volume = (float)(Volume.Value);
         }
     }
 }

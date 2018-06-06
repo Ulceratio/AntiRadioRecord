@@ -27,6 +27,17 @@ namespace AntiRadioRecord
                 return "https://music7s.me/search.php?search=" + $"{searchString}";// + "&count=5&sort=2";
             }
         }
+
+        //private string adressForCoolDj = "https://cool.dj/";
+
+        private string mainAdressForCoolDj
+        {
+            get
+            {
+                return "https://cool.dj/search/f/" + $"{searchString}";// + "&count=5&sort=2";
+            }
+        }
+
         public string downloadString;
         #endregion
 
@@ -123,13 +134,69 @@ namespace AntiRadioRecord
                 byte[] file = await client.GetByteArrayAsync(new Uri(adressForMusic7s + downloadLink));
                 return file;
             }
-            catch (Exception ex)
+            catch //(Exception ex)
             {
                 return null;
             }
         }
 
         #endregion
+
+        #region Download from https://cool.dj/
+
+        private async Task<string> GetDownloadlinkFromCoolDj(string inputSearchString)
+        {
+            searchString = inputSearchString;
+            string webPage = await getWebPageAsync("https://datmusic.xyz/?q=avicii");//mainAdressForCoolDj);
+            var doc = parser.Parse(webPage);
+            try
+            {
+                var element = doc.All.FirstOrDefault((x) => x.ClassName == "playlist-btn-down no-ajaxy");
+                var allElements = doc.All;
+                if (element != null)
+                {
+                    return element.GetAttribute("href");
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public async Task<byte[]> GetMp3ForCoolDjAsync(string inputSearchString)
+        {
+            try
+            {
+                string downloadLink = await GetDownloadlinkFromCoolDj(inputSearchString.Replace(" ", "+").Replace("(", "+").Replace(")", "+").Replace("-","+").Replace("&","+"));
+                byte[] file = await client.GetByteArrayAsync(new Uri(downloadLink));
+                return file;
+            }
+            catch //(Exception ex)
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
+        public async Task<byte[]> GetMp3(string inputSearchString)
+        {
+            var firstTry = await GetMp3ForCoolDjAsync(inputSearchString);
+
+            if(firstTry != null)
+            {
+                return firstTry;
+            }
+            else
+            {
+                return await GetMp3ForMusic7sAsync(inputSearchString);
+            }
+        }
 
         #endregion
 
