@@ -33,14 +33,18 @@
                     HorizontalAlignment="Stretch" 
                     Click="PlayStop_Click"
                     BorderThickness="0"
-                    Opacity="0.3">
-                <Image Name="PlayStopImage"></Image>
-                
+                    Opacity="0"
+                    Panel.ZIndex="1">
             </Button>
-            
+            <Image Grid.Column="0" Name="PlayStopImage" Panel.ZIndex="0"></Image>
+
+
             <TextBlock Grid.Column="1" Name="CurrentSongOnRadio" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Center"></TextBlock>
 
-            <CustomControls:SimpleSlider Grid.Column="2" x:Name="Volume" HeightForRectangles="3" HeightForRegulator="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ValueChanged="Volume_ValueChanged">
+            <CustomControls:SimpleSlider Grid.Column="2" x:Name="Volume" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
+                                         HeightForRegulator="0.35"
+                                         HeightForRectangles="0.1"
+                                         ValueChanged="Volume_ValueChanged">
 
             </CustomControls:SimpleSlider>
         </Grid>

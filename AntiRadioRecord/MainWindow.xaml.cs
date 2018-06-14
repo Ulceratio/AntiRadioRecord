@@ -106,22 +106,32 @@ namespace AntiRadioRecord
             {
                 Dispatcher.Invoke(() =>
                 {
-                    BitmapImage myBitmapImage = new BitmapImage();
-                    myBitmapImage.BeginInit();
-                    myBitmapImage.UriSource = new Uri("Pause.png", UriKind.Relative);
-                    myBitmapImage.EndInit();
-                    PlayStopImage.Source = myBitmapImage;
+                    //BitmapImage myBitmapImage = new BitmapImage();
+                    //myBitmapImage.BeginInit();
+                    //myBitmapImage.UriSource = new Uri("Pause.png", UriKind.Relative);
+                    //myBitmapImage.EndInit();
+                    byte[] buffer = File.ReadAllBytes("Pause.png");
+                    ImageSource result;
+                    using (var stream = new MemoryStream(buffer))
+                    {
+                        result = BitmapFrame.Create(
+                            stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                    }
+                    PlayStopImage.Source = result;
                 });
             }
             else
             {
                 Dispatcher.Invoke(() =>
                 {
-                    BitmapImage myBitmapImage = new BitmapImage();
-                    myBitmapImage.BeginInit();
-                    myBitmapImage.UriSource = new Uri("Play.png", UriKind.Relative);
-                    myBitmapImage.EndInit();
-                    PlayStopImage.Source = myBitmapImage;
+                    byte[] buffer = File.ReadAllBytes("Play.png");
+                    ImageSource result;
+                    using (var stream = new MemoryStream(buffer))
+                    {
+                        result = BitmapFrame.Create(
+                            stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                    }
+                    PlayStopImage.Source = result;
                 });
             }
         }

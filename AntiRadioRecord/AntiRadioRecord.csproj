@@ -130,10 +130,19 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="CustomConrols\CustomSlider.dll" />
+    <Folder Include="ButtonImg\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="ButtonImg\" />
+    <Content Include="CustomConrols\CustomSlider.dll" />
+    <Content Include="CustomConrols\CustomSlider.pdb" />
+    <Content Include="CustomConrols\Microsoft.Practices.ServiceLocation.dll" />
+    <Content Include="CustomConrols\Microsoft.Practices.ServiceLocation.pdb" />
+    <Resource Include="CustomConrols\Microsoft.Practices.ServiceLocation.xml" />
+    <Content Include="CustomConrols\Prism.dll" />
+    <Content Include="CustomConrols\Prism.Wpf.dll" />
+    <Resource Include="CustomConrols\Prism.Wpf.xml" />
+    <Resource Include="CustomConrols\Prism.xml" />
+    <Content Include="CustomConrols\System.Windows.Interactivity.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
